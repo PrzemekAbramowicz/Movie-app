@@ -4,6 +4,7 @@ import Search from "./components/Search";
 import Spinner from "./components/Spinner";
 import MovieCard from "./components/MovieCard";
 import { getTopTrendingMovies, updateSearchCount } from "./appwrite";
+import MoviePopup from "./components/MoviePopup";
 
 const API_BASE_URL = "https://api.themoviedb.org/3";
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
@@ -16,18 +17,43 @@ const API_OPTIONS = {
 };
 
 function App() {
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
   const [movieList, setMovieList] = useState([]);
-  const [topTrendingMovies, setTopTrendingMovies] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  const [topTrendingMovies, setTopTrendingMovies] = useState([]);
+  const [selectedMovie, setSelectedMovie] = useState(null);
 
   // Debounce search input to avoid excessive API requests
   useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm]);
 
+  const fetchMovieDetails = async (movieId) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/movie/${movieId}`,
+        API_OPTIONS,
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch movie details");
+      }
+
+      const data = await response.json();
+
+      setSelectedMovie(data);
+    } catch (error) {
+      console.error(`Error fetching movie details: ${error}`);
+    }
+  };
+
   useEffect(() => {
     const fetchMovies = async (query = "") => {
+      setIsLoading(true);
+      setErrorMessage("");
+
       try {
         const endpoint = query
           ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
@@ -90,9 +116,13 @@ function App() {
             <h2>Top Movies</h2>
             <ul>
               {topTrendingMovies.map((movie, index) => (
-                <li key={movie.id}>
+                <li
+                  key={movie.$id}
+                  className="cursor-pointer"
+                  onClick={() => fetchMovieDetails(movie.movie_id)}
+                >
                   <p>{index + 1}</p>
-                  <img src={movie.poster_url} alt={movie.title} />
+                  <img src={movie.poster_url} alt={movie.searchTerm} />
                 </li>
               ))}
             </ul>
@@ -109,12 +139,21 @@ function App() {
           ) : (
             <ul>
               {movieList.map((movie) => (
-                <MovieCard key={movie.id} movie={movie} />
+                <MovieCard
+                  key={movie.id}
+                  movie={movie}
+                  onMovieClick={setSelectedMovie}
+                />
               ))}
             </ul>
           )}
         </section>
       </div>
+
+      <MoviePopup
+        movie={selectedMovie}
+        onClose={() => setSelectedMovie(null)}
+      />
     </main>
   );
 }

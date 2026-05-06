@@ -1,8 +1,13 @@
-const MovieCard = ({
-  movie: { title, vote_average, poster_path, release_date, original_language },
-}) => {
+const MovieCard = ({ movie, onMovieClick }) => {
+  const { title, vote_average, poster_path, release_date, original_language } =
+    movie;
+
   return (
-    <div className="movie-card">
+    <button
+      type="button"
+      className="movie-card text-left"
+      onClick={() => onMovieClick(movie)}
+    >
       <img
         src={
           poster_path
@@ -29,7 +34,7 @@ const MovieCard = ({
           </p>
         </div>
       </div>
-    </div>
+    </button>
   );
 };
 
